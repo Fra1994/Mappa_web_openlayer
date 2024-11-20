@@ -1,0 +1,68 @@
+// Creazione della mappa con OpenLayers
+const map = new ol.Map({
+    target: 'map',
+    layers: [
+        new ol.layer.Tile({
+            source: new ol.source.OSM()
+        })
+    ],
+    view: new ol.View({
+        center: ol.proj.fromLonLat([12.4964, 41.9028]), // Coordinate di Roma
+        zoom: 12
+    })
+});
+
+// Funzione per zoomare su Roma
+const zoomRomaBtn = document.getElementById('zoomRomaBtn');
+zoomRomaBtn.addEventListener('click', function() {
+    map.getView().animate({
+        center: ol.proj.fromLonLat([12.4964, 41.9028]), // Coordinate di Roma
+        zoom: 12
+    });
+});
+
+// Implementazione del Geocoding tramite Nominatim API (OpenStreetMap)
+const searchBtn = document.getElementById('searchBtn');
+const searchBar = document.getElementById('searchBar');
+
+searchBtn.addEventListener('click', function() {
+    const address = searchBar.value;
+    if (address) {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${address}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const lon = parseFloat(data[0].lon);
+                    const lat = parseFloat(data[0].lat);
+                    const coord = ol.proj.fromLonLat([lon, lat]);
+
+                    // Centra la mappa sulle coordinate trovate e zoom
+                    map.getView().animate({
+                        center: coord,
+                        zoom: 15
+                    });
+
+                    // Aggiungi un marker
+                    const marker = new ol.Feature({
+                        geometry: new ol.geom.Point(coord),
+                    });
+
+                    const vectorSource = new ol.source.Vector({
+                        features: [marker]
+                    });
+
+                    const markerVectorLayer = new ol.layer.Vector({
+                        source: vectorSource
+                    });
+
+                    map.addLayer(markerVectorLayer);
+                } else {
+                    alert('Indirizzo non trovato');
+                }
+            })
+            .catch(error => {
+                console.error('Errore durante il geocoding:', error);
+                alert('Si è verificato un errore');
+            });
+    }
+});
